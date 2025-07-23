@@ -43,6 +43,8 @@
     setCookie('is_news_read', '07.01.25', 365);
     setCookie('lang', 'en', 365);
   </script>
+  
+  <script src="https://maps.googleapis.com/maps/api/js?v=3"></script>
 </head>
 <body>
   <div class="container">
@@ -134,8 +136,8 @@
         map.setZoom(13);
       }
     }
+
+    google.maps.event.addDomListener(window, 'load', initialize);
   </script>
-  
-  <script src="https://maps.googleapis.com/maps/api/js?v=3&callback=initialize"></script>
 </body>
 </html>
