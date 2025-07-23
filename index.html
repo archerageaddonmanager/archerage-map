@@ -1,34 +1,118 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>ArcheAge Fan Map</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <!-- Styles principaux gisaa.ru -->
-  <link rel="stylesheet" href="https://gisaa.ru/css/bootstrap-5.css?v=4">
-  <link rel="stylesheet" href="https://gisaa.ru/css/menu.css?v=3">
-  <link rel="stylesheet" href="https://gisaa.ru/css/bootstrap-datetimepicker.css?v=3">
-  <link rel="stylesheet" href="https://gisaa.ru/css/main.blade.css?v=11">
-  <link rel="stylesheet" href="https://gisaa.ru/css/mainStyles.css?v=11">
-  <link rel="stylesheet" href="https://gisaa.ru/css/main.css?v=8">
-
-  <!-- Librairies JS nécessaires -->
-  <script src="https://gisaa.ru/js/jquery-3.6.0.js?v=3"></script>
-  <script src="https://maps.googleapis.com/maps/api/js?v=3"></script>
-  <script src="https://gisaa.ru/js/jsgooglemap.js"></script>
-  <script src="https://gisaa.ru/js/map.js"></script>
-  <script src="https://gisaa.ru/js/marker.js"></script>
-  <script src="https://gisaa.ru/js/controls.js"></script>
-  <!-- Ajoute d'autres scripts si besoin (voir source gisaa.ru pour la liste complète) -->
-</head>
-<body class="dark" style="padding-top: 0px; margin-bottom: 0px;">
-  <div id="map" style="width:100%;height:800px;"></div>
+  <style>
+    html, body, #map { height: 100%; margin: 0; padding: 0; }
+    .container {
+      width: 98vw;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 12px;
+      background: #222;
+      border-radius: 12px;
+      box-shadow: 0 0 8px #0006;
+      min-height: 90vh;
+    }
+    #map {
+      height: 800px;
+      border-radius: 8px;
+    }
+  </style>
   <script>
-    // Appelle la fonction d'init de gisaa.ru si disponible
-    if (typeof initialize === "function") {
-      initialize();
+    function setCookie(name, value, days) {
+      var expires = "";
+      if (days) {
+        var date = new Date();
+        date.setTime(date.getTime() + (days*24*60*60*1000));
+        expires = "; expires=" + date.toUTCString();
+      }
+      document.cookie = name + "=" + (value || "")  + expires + "; path=/";
+    }
+    setCookie('favorite_themes', '0', 365); 
+    setCookie('is_news_read', '07.01.25', 365); 
+    setCookie('lang', 'en', 365); 
+  </script>
+  <script src="https://maps.googleapis.com/maps/api/js?v=3"></script>
+  <script>
+    function DegToLat(k, d, m, s) {
+      var l = (parseInt(d) || 0) + (parseInt(m) || 0) / 60 + (parseInt(s) || 0) / 3600;
+      if (k == 'N') l = -l;
+      var zlat = -0.535747;
+      var hlat = 0.0573585;
+      var lat = -l * hlat + zlat;
+      return lat;
+    }
+    function DegToLng(k, d, m, s) {
+      var l = (parseInt(d) || 0) + (parseInt(m) || 0) / 60 + (parseInt(s) || 0) / 3600;
+      if (k == 'E') l = -l;
+      var zlng = 1.321600;
+      var hlng = 0.057750;
+      var lng = -l * hlng + zlng;
+      return lng;
+    }
+    function initMap() {
+      var gisaaTypeOptions = {
+        tileSize: new google.maps.Size(256, 256),
+        maxZoom: 13,
+        minZoom: 9,
+        getTileUrl: function(coord, zoom) {
+          if (zoom == 9 && coord.x >= 256 && coord.x <= 258 && coord.y >= 256 && coord.y <= 258) {
+            return 'https://gisaa.ru/maps/Z9/' + coord.y + '/' + coord.x + '.jpg';
+          } else if (zoom == 10 && coord.x >= 512 && coord.x <= 517 && coord.y >= 512 && coord.y <= 517) {
+            return 'https://gisaa.ru/maps/Z10/' + coord.y + '/' + coord.x + '.jpg';
+          } else if (zoom == 11 && coord.x >= 1024 && coord.x <= 1035 && coord.y >= 1024 && coord.y <= 1035) {
+            return 'https://gisaa.ru/maps/Z11/' + coord.y + '/' + coord.x + '.jpg';
+          } else if (zoom == 12 && coord.x >= 2048 && coord.x <= 2071 && coord.y >= 2048 && coord.y <= 2071) {
+            return 'https://gisaa.ru/maps/Z12/' + coord.y + '/' + coord.x + '.jpg';
+          } else if (zoom == 13 && coord.x >= 4096 && coord.x <= 4143 && coord.y >= 4096 && coord.y <= 4143) {
+            return 'https://gisaa.ru/maps/Z13/' + coord.y + '/' + coord.x + '.jpg';
+          }
+          return 'https://gisaa.ru/maps/no.jpg';
+        },
+        isPng: false
+      };
+      var gisaaMapType = new google.maps.ImageMapType(gisaaTypeOptions);
+
+      var map = new google.maps.Map(document.getElementById('map'), {
+        center: {lat: -1.1, lng: 1.1},
+        zoom: 9,
+        streetViewControl: false,
+        mapTypeControl: false,
+        draggableCursor: 'pointer'
+      });
+      map.mapTypes.set('gisaa', gisaaMapType);
+      map.setMapTypeId('gisaa');
+
+      var urlParams = new URLSearchParams(window.location.search);
+      var dlatk = urlParams.get('dlatk');
+      var dlatd = urlParams.get('dlatd');
+      var dlatm = urlParams.get('dlatm');
+      var dlats = urlParams.get('dlats');
+      var dlngk = urlParams.get('dlngk');
+      var dlngd = urlParams.get('dlngd');
+      var dlngm = urlParams.get('dlngm');
+      var dlngs = urlParams.get('dlngs');
+      if (dlatk && dlatd && dlatm && dlats && dlngk && dlngd && dlngm && dlngs) {
+        var lat = DegToLat(dlatk, dlatd, dlatm, dlats);
+        var lng = DegToLng(dlngk, dlngd, dlngm, dlngs);
+        var marker = new google.maps.Marker({
+          position: {lat: lat, lng: lng},
+          map: map,
+          title: "Treasure!"
+        });
+        map.setCenter({lat: lat, lng: lng});
+        map.setZoom(13); 
+      }
     }
   </script>
+</head>
+<body onload="initMap()">
+  <div class="container">
+    <h2 style="color:#fff;text-align:center;margin-bottom:8px;">ArcheAge Fan Map</h2>
+    <div id="map"></div>
+  </div>
 </body>
 </html>
