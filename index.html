@@ -20,6 +20,7 @@
       height: 600px; 
       margin: 0;
       padding: 0;
+      border: 1px solid #444;
     }
   </style>
 </head>
@@ -72,7 +73,10 @@
       bounds: mapBounds
     }).addTo(map);
 
-    map.fitBounds(mapBounds);
+    setTimeout(function() {
+      map.invalidateSize();
+      map.fitBounds(mapBounds);
+    }, 100);
 
     var dlatk = getUrlParam('dlatk');
     var dlatd = getUrlParam('dlatd');
