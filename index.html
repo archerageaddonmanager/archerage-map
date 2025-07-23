@@ -1,135 +1,73 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>ArcheAge Fan Map</title>
-  <meta name="viewport" content="width=device-width">
-  
-  <script src="https://gisaa.ru/js/jquery-3.6.0.js?v=3"></script>
-  
+  <meta charset="UTF-8">
+  <title>ArcheAge Fan Map (Leaflet)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
   <style>
     html, body { height: 100%; margin: 0; padding: 0; background: #222; }
-    .container-fluid { padding: 12px; background: #222; min-height: 90vh; }
-    #map {
-      width: 100%; 
-      height: 800px; 
-      display: block; 
-      position: relative; 
-      background-color: rgb(229, 227, 223); 
-      overflow: hidden;
-    }
+    #map { width: 100%; height: 800px; margin: 0 auto; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 12px; background: #222; border-radius: 12px; }
   </style>
 </head>
-
-<body class="dark">
-  <div class="container-fluid px-4 min-vh">
-    <h5 class="pt-2" style="color:#fff;">Interactive map</h5>
-    
-    <div id="locinfo" style="color:#fff;"><b>Coordinates:</b> <u>Out of map</u></div>
-    
+<body>
+  <div class="container">
+    <h2 style="color:#fff;text-align:center;margin-bottom:8px;">ArcheAge Fan Map</h2>
     <div id="map"></div>
   </div>
-
-  <script src="https://maps.googleapis.com/maps/api/js?v=3"></script>
-  
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
   <script>
-    var adm = 0;
-    var coord;
-    var marker = {};
-    var markers = {};
-    var markers_store = {};
-    var infowindow = new google.maps.InfoWindow();
-    var markerClusterer;
-
+    function getUrlParam(param) {
+      var regex = new RegExp('[?&]' + param + '=([^&#]*)');
+      var results = regex.exec(window.location.href);
+      return results === null ? null : decodeURIComponent(results[1].replace(/\+/g, ' '));
+    }
     function DegToLat(k, d, m, s) {
-      var l = (d - 0) + (m - 0) / 60 + (s - 0) / 3600;
+      var l = (parseInt(d) || 0) + (parseInt(m) || 0) / 60 + (parseInt(s) || 0) / 3600;
       if (k == 'N') l = -l;
       var zlat = -0.535747;
       var hlat = 0.0573585;
       var lat = -l * hlat + zlat;
       return lat;
     }
-
     function DegToLng(k, d, m, s) {
-      var l = (d - 0) + (m - 0) / 60 + (s - 0) / 3600;
+      var l = (parseInt(d) || 0) + (parseInt(m) || 0) / 60 + (parseInt(s) || 0) / 3600;
       if (k == 'E') l = -l;
       var zlng = 1.321600;
       var hlng = 0.057750;
       var lng = -l * hlng + zlng;
       return lng;
     }
-
-    var gisaaTypeOptions = {
-      tileSize: new google.maps.Size(256, 256),
-      maxZoom: 13,
+    var map = L.map('map', {
       minZoom: 9,
-      getTileUrl: function(coord, zoom) {
-        if (zoom == 9 && coord.x >= 256 && coord.x <= 258 && coord.y >= 256 && coord.y <= 258) {
-          return 'https://gisaa.ru/maps/Z9/' + coord.y + '/' + coord.x + '.jpg';
-        } else if (zoom == 10 && coord.x >= 512 && coord.x <= 517 && coord.y >= 512 && coord.y <= 517) {
-          return 'https://gisaa.ru/maps/Z10/' + coord.y + '/' + coord.x + '.jpg';
-        } else if (zoom == 11 && coord.x >= 1024 && coord.x <= 1035 && coord.y >= 1024 && coord.y <= 1035) {
-          return 'https://gisaa.ru/maps/Z11/' + coord.y + '/' + coord.x + '.jpg';
-        } else if (zoom == 12 && coord.x >= 2048 && coord.x <= 2071 && coord.y >= 2048 && coord.y <= 2071) {
-          return 'https://gisaa.ru/maps/Z12/' + coord.y + '/' + coord.x + '.jpg';
-        } else if (zoom == 13 && coord.x >= 4096 && coord.x <= 4143 && coord.y >= 4096 && coord.y <= 4143) {
-          return 'https://gisaa.ru/maps/Z13/' + coord.y + '/' + coord.x + '.jpg';
-        }
-        return 'https://gisaa.ru/maps/no.jpg';
-      },
-      isPng: false
-    };
-
-    var gisaaMapType = new google.maps.ImageMapType(gisaaTypeOptions);
-    var myOptions = {
-      center: new google.maps.LatLng(-1.1000000, 1.1000000),
+      maxZoom: 13,
+      center: [-1.1, 1.1],
       zoom: 9,
-      draggableCursor: 'pointer',
-      streetViewControl: false,
-      mapTypeControl: false,
-      mapTypeControlOptions: {
-        mapTypeIds: ['gisaa']
-      }
-    };
+      attributionControl: false
+    });
+    var gisaaLayer = L.tileLayer('https://gisaa.ru/maps/Z{z}/{y}/{x}.jpg', {
+      minZoom: 9,
+      maxZoom: 13,
+      tileSize: 256,
+      noWrap: true,
+      bounds: [[-10, -10], [10, 10]]
+    }).addTo(map);
 
-    var map = new google.maps.Map(document.getElementById('map'), myOptions);
-    map.mapTypes.set('gisaa', gisaaMapType);
-    map.setMapTypeId('gisaa');
-
-    function initialize() {
-      var url = window.location.href;
-      var dlatk = getUrlParam(url, 'dlatk');
-      var dlatd = getUrlParam(url, 'dlatd');
-      var dlatm = getUrlParam(url, 'dlatm');
-      var dlats = getUrlParam(url, 'dlats');
-      var dlngk = getUrlParam(url, 'dlngk');
-      var dlngd = getUrlParam(url, 'dlngd');
-      var dlngm = getUrlParam(url, 'dlngm');
-      var dlngs = getUrlParam(url, 'dlngs');
-      
-      if (dlatk && dlatd && dlatm && dlats && dlngk && dlngd && dlngm && dlngs) {
-        var lat = DegToLat(dlatk, dlatd, dlatm, dlats);
-        var lng = DegToLng(dlngk, dlngd, dlngm, dlngs);
-        
-        marker = new google.maps.Marker({
-          position: new google.maps.LatLng(lat, lng),
-          map: map,
-          title: "Treasure!"
-        });
-        
-        map.setCenter(new google.maps.LatLng(lat, lng));
-        map.setZoom(13);
-      }
+    var dlatk = getUrlParam('dlatk');
+    var dlatd = getUrlParam('dlatd');
+    var dlatm = getUrlParam('dlatm');
+    var dlats = getUrlParam('dlats');
+    var dlngk = getUrlParam('dlngk');
+    var dlngd = getUrlParam('dlngd');
+    var dlngm = getUrlParam('dlngm');
+    var dlngs = getUrlParam('dlngs');
+    if (dlatk && dlatd && dlatm && dlats && dlngk && dlngd && dlngm && dlngs) {
+      var lat = DegToLat(dlatk, dlatd, dlatm, dlats);
+      var lng = DegToLng(dlngk, dlngd, dlngm, dlngs);
+      L.marker([lat, lng]).addTo(map);
+      map.setView([lat, lng], 13);
     }
-
-    function getUrlParam(url, param) {
-      var regex = new RegExp('[?&]' + param + '=([^&#]*)');
-      var results = regex.exec(url);
-      return results === null ? null : decodeURIComponent(results[1].replace(/\+/g, ' '));
-    }
-
-    google.maps.event.addDomListener(window, 'load', initialize);
   </script>
 </body>
 </html>
