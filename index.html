@@ -10,14 +10,13 @@
       height: 100%; 
       margin: 0; 
       padding: 0; 
-      background: #d4c4a0; 
+      background: #d4c4a0;
     }
     #map { 
       width: 100%; 
       height: 100vh; 
-      background: #d4c4a0; 
+      background: #d4c4a0;
     }
-
     .leaflet-control-zoom a {
       background-color: #f4e6c7 !important;
       border: 1px solid #8b7355 !important;
@@ -54,30 +53,20 @@
       return lng;
     }
 
-    var mapBounds = [
-      [-2.5, 0.5],  
-      [0.5, 2.5]    
-    ];
-
     var map = L.map('map', {
       minZoom: 9,
       maxZoom: 13,
-      center: [-1.1, 1.1],
-      zoom: 9,
-      attributionControl: false,
-      maxBounds: mapBounds,           
-      maxBoundsViscosity: 1.0        
+      center: [-1.1, 1.1], 
+      zoom: 9, // 
+      attributionControl: false
     });
 
     var gisaaLayer = L.tileLayer('https://gisaa.ru/maps/Z{z}/{y}/{x}.jpg', {
       minZoom: 9,
       maxZoom: 13,
       tileSize: 256,
-      noWrap: true,
-      bounds: mapBounds
+      noWrap: true
     }).addTo(map);
-
-    map.fitBounds(mapBounds);
 
     var dlatk = getUrlParam('dlatk');
     var dlatd = getUrlParam('dlatd');
