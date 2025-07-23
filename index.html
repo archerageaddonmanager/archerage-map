@@ -1,3 +1,7 @@
+j'utilise ce que tu ma donné 
+
+sa 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -51,15 +55,8 @@
       maxZoom: 13,
       tileSize: 256,
       noWrap: true,
-      tms: false,
-      crossOrigin: true, 
-      bounds: [[-10, -10], [10, 10]],
-      errorTileUrl: 'https://upload.wikimedia.org/wikipedia/commons/6/65/No-Image-Placeholder.svg'
+      bounds: [[-10, -10], [10, 10]]
     }).addTo(map);
-
-    gisaaLayer.on('tileerror', function(e) {
-      console.log('Erreur de tuile:', e);
-    });
 
     var dlatk = getUrlParam('dlatk');
     var dlatd = getUrlParam('dlatd');
@@ -73,7 +70,6 @@
       var lat = DegToLat(dlatk, dlatd, dlatm, dlats);
       var lng = DegToLng(dlngk, dlngd, dlngm, dlngs);
       L.marker([lat, lng]).addTo(map);
-      map.setView([lat, lng], 13);
     }
   </script>
 </body>
