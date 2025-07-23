@@ -1,21 +1,16 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>ArcheAge Fan Map</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width">
+  
+  <script src="https://gisaa.ru/js/jquery-3.6.0.js?v=3"></script>
+  
   <style>
     html, body { height: 100%; margin: 0; padding: 0; background: #222; }
-    .container {
-      width: 98vw;
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 12px;
-      background: #222;
-      border-radius: 12px;
-      box-shadow: 0 0 8px #0006;
-      min-height: 90vh;
-    }
+    .container-fluid { padding: 12px; background: #222; min-height: 90vh; }
     #map {
       width: 100%; 
       height: 800px; 
@@ -23,52 +18,39 @@
       position: relative; 
       background-color: rgb(229, 227, 223); 
       overflow: hidden;
-      border-radius: 8px;
     }
   </style>
-  
-  <script src="https://gisaa.ru/js/jquery-3.6.0.js?v=3"></script>
-  
-  <script>
-    function setCookie(name, value, days) {
-      var expires = "";
-      if (days) {
-        var date = new Date();
-        date.setTime(date.getTime() + (days*24*60*60*1000));
-        expires = "; expires=" + date.toUTCString();
-      }
-      document.cookie = name + "=" + (value || "")  + expires + "; path=/";
-    }
-    setCookie('favorite_themes', '0', 365);
-    setCookie('is_news_read', '07.01.25', 365);
-    setCookie('lang', 'en', 365);
-  </script>
-  
-  <script src="https://maps.googleapis.com/maps/api/js?v=3"></script>
 </head>
-<body>
-  <div class="container">
-    <h2 style="color:#fff;text-align:center;margin-bottom:8px;">ArcheAge Fan Map</h2>
+
+<body class="dark">
+  <div class="container-fluid px-4 min-vh">
+    <h5 class="pt-2" style="color:#fff;">Interactive map</h5>
+    
+    <div id="locinfo" style="color:#fff;"><b>Coordinates:</b> <u>Out of map</u></div>
+    
     <div id="map"></div>
   </div>
 
   <script>
-    var map;
+    var adm = 0;
+    var coord;
     var marker = {};
     var markers = {};
-    var infowindow;
+    var markers_store = {};
+    var infowindow = new google.maps.InfoWindow();
+    var markerClusterer;
 
     function DegToLat(k, d, m, s) {
-      var l = (parseInt(d) || 0) + (parseInt(m) || 0) / 60 + (parseInt(s) || 0) / 3600;
+      var l = (d - 0) + (m - 0) / 60 + (s - 0) / 3600;
       if (k == 'N') l = -l;
       var zlat = -0.535747;
       var hlat = 0.0573585;
       var lat = -l * hlat + zlat;
       return lat;
     }
-    
+
     function DegToLng(k, d, m, s) {
-      var l = (parseInt(d) || 0) + (parseInt(m) || 0) / 60 + (parseInt(s) || 0) / 3600;
+      var l = (d - 0) + (m - 0) / 60 + (s - 0) / 3600;
       if (k == 'E') l = -l;
       var zlng = 1.321600;
       var hlng = 0.057750;
@@ -97,47 +79,57 @@
       isPng: false
     };
 
+    var gisaaMapType = new google.maps.ImageMapType(gisaaTypeOptions);
+    var myOptions = {
+      center: new google.maps.LatLng(-1.1000000, 1.1000000),
+      zoom: 9,
+      draggableCursor: 'pointer',
+      streetViewControl: false,
+      mapTypeControl: false,
+      mapTypeControlOptions: {
+        mapTypeIds: ['gisaa']
+      }
+    };
+
+    var map = new google.maps.Map(document.getElementById('map'), myOptions);
+    map.mapTypes.set('gisaa', gisaaMapType);
+    map.setMapTypeId('gisaa');
+
     function initialize() {
-      var gisaaMapType = new google.maps.ImageMapType(gisaaTypeOptions);
-      var myOptions = {
-        center: new google.maps.LatLng(-1.1, 1.1),
-        zoom: 9,
-        draggableCursor: 'pointer',
-        streetViewControl: false,
-        mapTypeControl: false,
-        mapTypeControlOptions: {
-          mapTypeIds: ['gisaa']
-        }
-      };
-
-      map = new google.maps.Map(document.getElementById('map'), myOptions);
-      map.mapTypes.set('gisaa', gisaaMapType);
-      map.setMapTypeId('gisaa');
-
-      marker = new google.maps.Marker({
-        map: map
-      });
-
-      var urlParams = new URLSearchParams(window.location.search);
-      var dlatk = urlParams.get('dlatk');
-      var dlatd = urlParams.get('dlatd');
-      var dlatm = urlParams.get('dlatm');
-      var dlats = urlParams.get('dlats');
-      var dlngk = urlParams.get('dlngk');
-      var dlngd = urlParams.get('dlngd');
-      var dlngm = urlParams.get('dlngm');
-      var dlngs = urlParams.get('dlngs');
+      var url = window.location.href;
+      var dlatk = getUrlParam(url, 'dlatk');
+      var dlatd = getUrlParam(url, 'dlatd');
+      var dlatm = getUrlParam(url, 'dlatm');
+      var dlats = getUrlParam(url, 'dlats');
+      var dlngk = getUrlParam(url, 'dlngk');
+      var dlngd = getUrlParam(url, 'dlngd');
+      var dlngm = getUrlParam(url, 'dlngm');
+      var dlngs = getUrlParam(url, 'dlngs');
       
       if (dlatk && dlatd && dlatm && dlats && dlngk && dlngd && dlngm && dlngs) {
         var lat = DegToLat(dlatk, dlatd, dlatm, dlats);
         var lng = DegToLng(dlngk, dlngd, dlngm, dlngs);
-        marker.setPosition(new google.maps.LatLng(lat, lng));
+        
+        marker = new google.maps.Marker({
+          position: new google.maps.LatLng(lat, lng),
+          map: map,
+          title: "Treasure!"
+        });
+        
         map.setCenter(new google.maps.LatLng(lat, lng));
         map.setZoom(13);
       }
     }
 
+    function getUrlParam(url, param) {
+      var regex = new RegExp('[?&]' + param + '=([^&#]*)');
+      var results = regex.exec(url);
+      return results === null ? null : decodeURIComponent(results[1].replace(/\+/g, ' '));
+    }
+
     google.maps.event.addDomListener(window, 'load', initialize);
   </script>
+  
+  <script src="https://maps.googleapis.com/maps/api/js?v=3"></script>
 </body>
 </html>
